@@ -641,6 +641,8 @@ class Resource(wsgi.Application):
             resp_obj = None
             if type(action_result) is dict or action_result is None:
                 resp_obj = ResponseObject(action_result)
+                if  accept == "text/plain":
+                    accept = "application/json"
             elif isinstance(action_result, ResponseObject):
                 resp_obj = action_result
             else:
