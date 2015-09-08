@@ -19,11 +19,13 @@ from .wsgi_base import *
 LOG = logging.getLogger(__name__)
 
 _SUPPORTED_CONTENT_TYPES = (
+    'text/plain',
     'application/json',
     'application/xml',
 )
 
 _MEDIA_TYPE_MAP = {
+    'text/plain': 'text',
     'application/xml': 'xml',
     'application/json': 'json',
 }
@@ -88,6 +90,26 @@ class Request(wsgi.Request):
         Note that the object data will be slightly stale.
         """
         return self.get_db_items(key).get(item_key)
+
+    def best_match_content_type(self):
+        """Determine the requested response content-type."""
+        if 'wsgi.best_content_type' not in self.environ:
+            # Calculate the best MIME type
+            content_type = None
+
+            # Check URL path suffix
+            parts = self.path.rsplit('.', 1)
+            if len(parts) > 1:
+                possible_type = 'application/' + parts[1]
+                if possible_type in get_supported_content_types():
+                    content_type = possible_type
+
+            if not content_type:
+                content_type = self.accept.best_match(get_supported_content_types())
+
+            self.environ['wsgi.best_content_type'] = (content_type or 'application/json')
+
+        return self.environ['wsgi.best_content_type']
 
     def get_content_type(self):
         """Determine content type of the request body.
@@ -156,6 +178,14 @@ class JSONDeserializer(TextDeserializer):
 
     def default(self, datastring):
         return {'body': self._from_json(datastring)}
+
+
+class TextSerializer(ActionDispatcher):
+    def serialize(self, data, action="default"):
+        return self.dispatch(data, action=action)
+
+    def default(self, data):
+        return str(data)
 
 
 class DictSerializer(ActionDispatcher):
@@ -440,7 +470,7 @@ class Resource(wsgi.Application):
         default_deserializers.update(deserializers)
 
         self.default_deserializers = default_deserializers
-        self.default_serializers = dict(json=JSONDictSerializer)
+        self.default_serializers = dict(json=JSONDictSerializer, text=TextSerializer)
 
         self.action_peek = dict(json=action_peek_json)
         self.action_peek.update(action_peek or {})
@@ -543,7 +573,7 @@ class Resource(wsgi.Application):
         action_args = self.get_action_args(request.environ)
         action = action_args.pop('action', None)
         content_type, body = self.get_body(request)
-        accept = content_type
+        accept = request.best_match_content_type()
 
         # NOTE(Vek): Splitting the function up this way allows for
         #            auditing by external tools that wrap the existing
