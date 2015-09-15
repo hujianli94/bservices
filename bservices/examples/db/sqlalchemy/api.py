@@ -35,10 +35,10 @@ def get_user_info(username):
 
 class APIInterface(object):
     def __init__(self):
-        self._engine = get_engine()
-        self._session = get_session()
-        self._api_engine = get_api_engine(CONF.api_database)
-        self._api_session = get_api_session(CONF.api_database)
+        self._engine = get_engine(CONF.database)
+        self._session = get_session(CONF.database)
+        self._api_engine = get_engine(CONF.api_database)
+        self._api_session = get_session(CONF.api_database)
 
     def get_user_info(self, username):
             model = models.UserInfo
