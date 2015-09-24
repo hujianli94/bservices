@@ -125,7 +125,8 @@ class Request(wsgi.Request):
         # NOTE(markmc): text/plain is the default for eventlet and
         # other webservers which use mimetools.Message.gettype()
         # whereas twisted defaults to ''.
-        if not content_type or content_type == 'text/plain':
+        # if not content_type or content_type == 'text/plain':
+        if not content_type:
             return None
 
         if content_type not in get_supported_content_types():
@@ -164,7 +165,7 @@ class TextDeserializer(ActionDispatcher):
         return self.dispatch(datastring, action=action)
 
     def default(self, datastring):
-        return {}
+        return {"body": datastring}
 
 
 class JSONDeserializer(TextDeserializer):
@@ -466,7 +467,7 @@ class Resource(wsgi.Application):
 
         self.controller = controller
 
-        default_deserializers = dict(json=JSONDeserializer)
+        default_deserializers = dict(json=JSONDeserializer, text=TextDeserializer)
         default_deserializers.update(deserializers)
 
         self.default_deserializers = default_deserializers
@@ -639,9 +640,9 @@ class Resource(wsgi.Application):
             # No exceptions; convert action_result into a
             # ResponseObject
             resp_obj = None
-            if type(action_result) is dict or action_result is None:
+            if type(action_result) is dict:
                 resp_obj = ResponseObject(action_result)
-                if  accept == "text/plain":
+                if accept == "text/plain":
                     accept = "application/json"
             elif isinstance(action_result, ResponseObject):
                 resp_obj = action_result
