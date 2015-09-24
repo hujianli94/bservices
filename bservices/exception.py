@@ -116,6 +116,15 @@ class VersionNotFoundForAPIMethod(Invalid):
     msg_fmt = _("API version %(version)s is not supported on this method.")
 
 
+class BadRequest(BaseException):
+    msg_fmt = _("Bad Request")
+    code = 400
+
+
+class MalformedRequestBody(BadRequest):
+    msg_fmt = _("Malformed message body: %(reason)s")
+
+
 class NotFound(BaseException):
     msg_fmt = _("Resource could not be found.")
     code = 404
@@ -123,6 +132,14 @@ class NotFound(BaseException):
 
 class FileNotFound(NotFound):
     msg_fmt = _("File %(file_path)s could not be found.")
+
+
+class ConfigNotFound(BaseException):
+    msg_fmt = _("Could not find config at %(path)s")
+
+
+class PasteAppNotFound(BaseException):
+    msg_fmt = _("Could not load paste app '%(name)s' from %(path)s")
 
 
 class CoreAPIMissing(BaseException):
