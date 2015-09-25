@@ -55,7 +55,7 @@ class Loader(object):
 
 
 def main():
-    config.parse_args(sys.argv)
+    config.parse_args(sys.argv, PROJECT)
     logging.setup(CONF, PROJECT)
     eventlet.monkey_patch(all=True)
 
