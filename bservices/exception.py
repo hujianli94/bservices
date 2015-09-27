@@ -10,6 +10,32 @@ import webob.exc
 from .i18n import _
 
 LOG = logging.getLogger(__name__)
+_exc_map = {}
+
+
+def _exc_map_f():
+    for http in dir(webob.exc):
+        if http.startswith("HTTP"):
+            cls = getattr(webob.exc, http)
+            code = getattr(cls, "code", None)
+            if code and issubclass(cls, webob.exc.WSGIHTTPException):
+                _exc_map.setdefault(code, [])
+                _exc_map[code].append(cls)
+_exc_map_f()
+
+
+def convert_exc(code, first=True, strict=False):
+    clss = _exc_map.get(code, None)
+    if clss is None:
+        if strict:
+            return None
+        code = int(code // 100) * 100
+        clss = _exc_map.get(code)
+
+    if first:
+        return clss[0]
+    else:
+        return clss
 
 
 class ConvertedException(webob.exc.WSGIHTTPException):
