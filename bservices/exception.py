@@ -51,7 +51,7 @@ def _cleanse_dict(original):
     return {k: v for k, v in six.iteritems(original) if "_pass" not in k}
 
 
-class BaseException(Exception):
+class _BaseException(Exception):
     """Base Nova Exception
     To correctly use this class, inherit from it and define
     a 'msg_fmt' property. That msg_fmt will get printf'd
@@ -82,15 +82,15 @@ class BaseException(Exception):
                 message = self.msg_fmt
 
         self.message = message
-        super(BaseException, self).__init__(message)
+        super(_BaseException, self).__init__(message)
 
     def format_message(self):
         # NOTE(mrodden): use the first argument to the python Exception object
-        # which should be our full BaseException message, (see __init__)
+        # which should be our full _BaseException message, (see __init__)
         return self.args[0]
 
 
-class Forbidden(BaseException):
+class Forbidden(_BaseException):
     ec2_code = 'AuthFailure'
     msg_fmt = _("Not authorized.")
     code = 403
@@ -100,7 +100,7 @@ class AdminRequired(Forbidden):
     msg_fmt = _("User does not have admin privileges")
 
 
-class Invalid(BaseException):
+class Invalid(_BaseException):
     msg_fmt = _("Unacceptable parameters.")
     code = 400
 
@@ -142,7 +142,7 @@ class VersionNotFoundForAPIMethod(Invalid):
     msg_fmt = _("API version %(version)s is not supported on this method.")
 
 
-class BadRequest(BaseException):
+class BadRequest(_BaseException):
     msg_fmt = _("Bad Request")
     code = 400
 
@@ -151,7 +151,7 @@ class MalformedRequestBody(BadRequest):
     msg_fmt = _("Malformed message body: %(reason)s")
 
 
-class NotFound(BaseException):
+class NotFound(_BaseException):
     msg_fmt = _("Resource could not be found.")
     code = 404
 
@@ -160,23 +160,23 @@ class FileNotFound(NotFound):
     msg_fmt = _("File %(file_path)s could not be found.")
 
 
-class ConfigNotFound(BaseException):
+class ConfigNotFound(_BaseException):
     msg_fmt = _("Could not find config at %(path)s")
 
 
-class PasteAppNotFound(BaseException):
+class PasteAppNotFound(_BaseException):
     msg_fmt = _("Could not load paste app '%(name)s' from %(path)s")
 
 
-class CoreAPIMissing(BaseException):
+class CoreAPIMissing(_BaseException):
     msg_fmt = _("Core API extensions are missing: %(missing_apis)s")
 
 
 # Cannot be templated, msg needs to be constructed when raised.
-class InternalError(BaseException):
+class InternalError(_BaseException):
     ec2_code = 'InternalError'
     msg_fmt = "%(err)s"
 
 
-class SocketPortInUseException(BaseException):
+class SocketPortInUseException(_BaseException):
     msg_fmt = _("Not able to bind %(host)s:%(port)d, %(error)s")
