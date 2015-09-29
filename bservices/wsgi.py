@@ -437,7 +437,7 @@ class ResourceExceptionHandler(object):
 
         code = getattr(ex_value, "code", None)
         if code:
-            raise exception.ConvertedException(code=code, title=code,
+            raise exception.ConvertedException(code=code,
                                                explanation=ex_value.format_message())
 
         # We didn't handle the exception
