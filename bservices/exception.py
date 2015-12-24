@@ -7,8 +7,7 @@ from oslo_log import log as logging
 import six
 import webob.exc
 
-from .i18n import _
-
+_ = (lambda v: v)
 LOG = logging.getLogger(__name__)
 _exc_map = {}
 

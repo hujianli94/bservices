@@ -12,7 +12,6 @@ from oslo_service import wsgi
 
 from . import api_version
 from . import exception
-from . import utils
 
 _ = (lambda v: v)
 LOG = logging.getLogger(__name__)
@@ -45,6 +44,14 @@ _METHODS_WITH_BODY = [
 
 # name of attribute to keep version method information
 VER_METHOD_ATTR = 'versioned_methods'
+
+
+def utf8(value):
+    """Try to turn a string into utf-8 if possible."""
+    if isinstance(value, six.text_type):
+        return value.encode('utf-8')
+    assert isinstance(value, str)
+    return value
 
 
 def get_supported_content_types():
@@ -353,8 +360,8 @@ class ResponseObject(object):
         response = webob.Response()
         response.status_int = self.code
         for hdr, value in self._headers.items():
-            response.headers[hdr] = utils.utf8(str(value))
-        response.headers['Content-Type'] = utils.utf8(content_type)
+            response.headers[hdr] = utf8(str(value))
+        response.headers['Content-Type'] = utf8(content_type)
         if self.obj is not None:
             response.body = serializer.serialize(self.obj)
 
@@ -639,8 +646,7 @@ class Resource(object):
             response = ex
 
         if not response:
-            # No exceptions; convert action_result into a
-            # ResponseObject
+            # No exceptions; convert action_result into a ResponseObject
             resp_obj = None
             if type(action_result) is dict:
                 resp_obj = ResponseObject(action_result)
@@ -667,7 +673,7 @@ class Resource(object):
         if hasattr(response, 'headers'):
             for hdr, val in response.headers.items():
                 # Headers must be utf-8 strings
-                response.headers[hdr] = utils.utf8(str(val))
+                response.headers[hdr] = utf8(str(val))
 
         return response
 

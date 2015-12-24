@@ -1,24 +1,22 @@
 # coding: utf-8
-
-import sys
+import logging
+import multiprocessing
 
 import routes
 import eventlet
 from oslo_config import cfg
-from oslo_log import log as logging
+from oslo_log import log
+from oslo_service import service
+from oslo_service.wsgi import Router, Server
 
-from bservices import config
-from bservices import service
 from bservices import wsgi
 
 LOG = logging.getLogger()
 CONF = cfg.CONF
 
-PROJECT = "example"
-
 cli_opts = [
-    cfg.StrOpt("%s_listen" % PROJECT, default='0.0.0.0'),
-    cfg.IntOpt("%s_listen_port" % PROJECT, default=10000)
+    cfg.StrOpt("listen_ip", default='0.0.0.0'),
+    cfg.IntOpt("listen_port", default=10000)
 ]
 CONF.register_cli_opts(cli_opts)
 
@@ -31,7 +29,7 @@ class HelloController(wsgi.Controller):
         LOG.info(body)
 
 
-class API(wsgi.Router):
+class API(Router):
     def __init__(self):
         mapper = routes.Mapper()
         mapper.redirect("", "/")
@@ -49,19 +47,21 @@ class API(wsgi.Router):
         super(API, self).__init__(mapper)
 
 
-class Loader(object):
-    def load_app(self, name):
-        return API()
+class WSGIServer(Server, service.ServiceBase):
+    pass
 
 
-def main():
-    config.parse_args(sys.argv, PROJECT)
-    logging.setup(CONF, PROJECT)
+def main(project="example"):
+    log.register_options(CONF)
+    CONF(project=project)
+    log.setup(CONF, project)
+
     eventlet.monkey_patch(all=True)
 
-    server = service.WSGIService(PROJECT, Loader(), use_ssl=False, max_url_len=16384)
-    service.serve(server, workers=server.workers)
-    service.wait()
+    server = WSGIServer(CONF, project, API(), host=CONF.listen_ip, port=CONF.listen_port,
+                        use_ssl=False, max_url_len=1024)
+    launcher = service.launch(CONF, server, workers=multiprocessing.cpu_count())
+    launcher.wait()
 
 
 if __name__ == '__main__':

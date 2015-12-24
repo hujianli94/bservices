@@ -19,7 +19,7 @@
 import re
 
 from . import exception
-from .i18n import _
+_ = (lambda v: v)
 
 
 class APIVersionRequest(object):
