@@ -1,21 +1,20 @@
 # coding: utf-8
+from __future__ import absolute_import, print_function
+
 import functools
+import six
+import webob
 
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from oslo_utils import strutils
-import six
-import webob
+from oslo_service import wsgi
 
 from . import api_version
 from . import exception
-from . import i18n
-from .i18n import _
 from . import utils
-from . import wsgi_base as wsgi
-from .wsgi_base import *
 
-
+_ = (lambda v: v)
 LOG = logging.getLogger(__name__)
 
 _SUPPORTED_CONTENT_TYPES = (
@@ -57,7 +56,7 @@ def get_media_map():
 
 
 class Request(wsgi.Request):
-    """Add some OpenStack API-specific logic to the base webob.Request."""
+    """Add some specific logic to the base webob.Request."""
 
     def __init__(self, *args, **kwargs):
         super(Request, self).__init__(*args, **kwargs)
@@ -142,7 +141,7 @@ class Request(wsgi.Request):
         """
         if not self.accept_language:
             return None
-        return self.accept_language.best_match(i18n.get_available_languages())
+        return self.accept_language.best_match("en_US")
 
 
 class ActionDispatcher(object):
@@ -213,7 +212,6 @@ def serializers(**serializers):
     method.  Note that the function attributes are directly
     manipulated; the method is not wrapped.
     """
-
     def decorator(func):
         if not hasattr(func, 'wsgi_serializers'):
             func.wsgi_serializers = {}
@@ -229,7 +227,6 @@ def deserializers(**deserializers):
     method.  Note that the function attributes are directly
     manipulated; the method is not wrapped.
     """
-
     def decorator(func):
         if not hasattr(func, 'wsgi_deserializers'):
             func.wsgi_deserializers = {}
@@ -245,7 +242,6 @@ def response(code):
     that the function attributes are directly manipulated; the method
     is not wrapped.
     """
-
     def decorator(func):
         func.wsgi_code = code
         return func
@@ -268,7 +264,6 @@ class ResponseObject(object):
         given preference over default serializers or method-specific
         serializers on return.
         """
-
         self.obj = obj
         self.serializers = serializers
         self._default_code = 200
@@ -279,17 +274,14 @@ class ResponseObject(object):
 
     def __getitem__(self, key):
         """Retrieves a header with the given name."""
-
         return self._headers[key.lower()]
 
     def __setitem__(self, key, value):
         """Sets a header with the given name to the given value."""
-
         self._headers[key.lower()] = value
 
     def __delitem__(self, key):
         """Deletes the header with the given name."""
-
         del self._headers[key.lower()]
 
     def _bind_method_serializers(self, meth_serializers):
@@ -303,7 +295,6 @@ class ResponseObject(object):
                                  response types and values containing
                                  serializer objects.
         """
-
         # We can't use update because that would be the wrong
         # precedence
         for mtype, serializer in meth_serializers.items():
@@ -318,7 +309,6 @@ class ResponseObject(object):
         default serializers will be used.  If no appropriate
         serializer is available, raises InvalidContentType.
         """
-
         default_serializers = default_serializers or {}
 
         try:
@@ -337,7 +327,6 @@ class ResponseObject(object):
         instance of it for later call.  This allows the serializer to
         be accessed by extensions for, e.g., template extension.
         """
-
         mtype, serializer = self.get_serializer(content_type,
                                                 default_serializers)
         self.media_type = mtype
@@ -345,7 +334,6 @@ class ResponseObject(object):
 
     def attach(self, **kwargs):
         """Attach slave templates to serializers."""
-
         if self.media_type in kwargs:
             self.serializer.attach(kwargs[self.media_type])
 
@@ -355,7 +343,6 @@ class ResponseObject(object):
         Utility method for serializing the wrapped object.  Returns a
         webob.Response object.
         """
-
         if self.serializer:
             serializer = self.serializer
         else:
@@ -376,19 +363,16 @@ class ResponseObject(object):
     @property
     def code(self):
         """Retrieve the response status."""
-
         return self._code or self._default_code
 
     @property
     def headers(self):
         """Retrieve the headers."""
-
         return self._headers.copy()
 
 
 def action_peek_json(body):
     """Determine action to invoke."""
-
     try:
         decoded = jsonutils.loads(body)
     except ValueError:
@@ -444,7 +428,7 @@ class ResourceExceptionHandler(object):
         return False
 
 
-class Resource(wsgi.Application):
+class Resource(object):
     """WSGI app that handles (de)serialization and controller dispatch.
 
     WSGI app that reads routing information supplied by RoutesMiddleware
@@ -455,6 +439,7 @@ class Resource(wsgi.Application):
     They may raise a webob.exc exception or return a dict, which will be
     serialized by requested content type.
     """
+
     support_api_request_version = False
 
     def __init__(self, controller, action_peek=None, inherits=None,
@@ -469,7 +454,6 @@ class Resource(wsgi.Application):
                             are applied to the parent resource will also apply
                             to this resource.
         """
-
         self.controller = controller
 
         default_deserializers = dict(json=JSONDeserializer, text=TextDeserializer)
@@ -491,16 +475,32 @@ class Resource(wsgi.Application):
         self.wsgi_action_extensions = {}
         self.inherits = inherits
 
+    @classmethod
+    def factory(cls, global_config, **local_config):
+        """Used for paste app factories in paste.deploy config files.
+        Any local configuration (that is, values under the [app:APPNAME]
+        section of the paste config) will be passed into the `__init__` method
+        as kwargs.
+        A hypothetical configuration would look like:
+            [app:wadl]
+            latest_version = 1.3
+            paste.app_factory = nova.api.fancy_api:Wadl.factory
+        which would result in a call to the `Wadl` class as
+            import nova.api.fancy_api
+            fancy_api.Wadl(latest_version='1.3')
+        You could of course re-implement the `factory` method in subclasses,
+        but using the kwarg passing it shouldn't be necessary.
+        """
+        return cls(**local_config)
+
     def register_actions(self, controller):
         """Registers controller actions with this resource."""
-
         actions = getattr(controller, 'wsgi_actions', {})
         for key, method_name in actions.items():
             self.wsgi_actions[key] = getattr(controller, method_name)
 
     def register_extensions(self, controller):
         """Registers controller extensions with this resource."""
-
         extensions = getattr(controller, 'wsgi_extensions', [])
         for method_name, action_name in extensions:
             # Look up the extending method
@@ -519,7 +519,6 @@ class Resource(wsgi.Application):
 
     def get_action_args(self, request_environment):
         """Parse dictionary created by routes library."""
-
         # NOTE(Vek): Check for get_action_args() override in the
         # controller
         if hasattr(self.controller, 'get_action_args'):
@@ -573,7 +572,6 @@ class Resource(wsgi.Application):
     @webob.dec.wsgify(RequestClass=Request)
     def __call__(self, request):
         """WSGI method that controls (de)serialization and method dispatch."""
-
         # Identify the action, its arguments, and the requested
         # content type
         action_args = self.get_action_args(request.environ)
@@ -592,7 +590,6 @@ class Resource(wsgi.Application):
     def _process_stack(self, request, action, action_args,
                        content_type, body, accept):
         """Implement the processing stack."""
-
         # Get the implementing method
         try:
             meth, extensions = self.get_method(request, action,
@@ -689,7 +686,6 @@ class Resource(wsgi.Application):
 
     def _get_method(self, request, action, content_type, body):
         """Look up the action-specific method and its extensions."""
-
         # Look up the method
         try:
             if not self.controller:
@@ -735,7 +731,6 @@ def action(name):
     This is also overloaded to allow extensions to provide
     non-extending definitions of create and delete operations.
     """
-
     def decorator(func):
         func.wsgi_action = name
         return func
@@ -757,7 +752,6 @@ def extends(*args, **kwargs):
         def _action_resize(...):
             pass
     """
-
     def decorator(func):
         # Store enough information to find what we're extending
         func.wsgi_extends = (func.__name__, kwargs.get('action'))
@@ -780,7 +774,6 @@ class ControllerMetaclass(type):
 
     def __new__(mcs, name, bases, cls_dict):
         """Adds the wsgi_actions dictionary to the class."""
-
         # Find all actions
         actions = {}
         extensions = []
@@ -843,7 +836,6 @@ class Controller(object):
             @raises: VersionNotFoundForAPIMethod if there is no method which
                  matches the name and version constraints
             """
-
             # The first arg to all versioned methods is always the request
             # object. The version for the request is attached to the
             # request object
@@ -888,7 +880,6 @@ class Controller(object):
         @min_ver: string representing minimum version
         @max_ver: optional string representing maximum version
         """
-
         def decorator(f):
             obj_min_ver = api_version.APIVersionRequest(min_ver)
             if max_ver:
