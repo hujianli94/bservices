@@ -54,8 +54,9 @@ class WSGIServer(Server, service.ServiceBase):
 def main(project="example"):
     log.register_options(CONF)
     CONF(project=project)
-    log.setup(CONF, project)
+    # log.set_defaults(default_log_levels=None)
 
+    log.setup(CONF, project)
     eventlet.monkey_patch(all=True)
 
     server = WSGIServer(CONF, project, API(), host=CONF.listen_ip, port=CONF.listen_port,
