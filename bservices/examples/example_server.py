@@ -1,4 +1,27 @@
 # coding: utf-8
+"""
+Server
+    Run:
+        python -m bservices.examples.example_server
+
+Client:
+    Add:
+        curl http://127.0.0.1:10000/set_data -d '{"data": "test_data"}' -H "Content-Type: application/json"
+        >>> {"id": 1}
+    Get:
+        curl http://127.0.0.1:10000/get_data?id=1
+        >>> {"data": "test_data", "id": 1}
+
+Controller API:
+    A action can return:
+        1) a dict object
+        2) a bservices.wsgi.ResponseObject object
+        3) a exception based on webob.exc.HTTPException or bservices.exception.ExceptionBase
+        4) any object compatible with webob.dec.wsgify.__call__, for example,
+            None, string(str, bytes, unicode), webob.Response, etc.
+    Notice:
+        The first two will be serialized, see bservices.wsgi.ResponseObject.
+"""
 import logging
 import multiprocessing
 
@@ -9,7 +32,8 @@ from oslo_log import log
 from oslo_service import service
 from oslo_service.wsgi import Router, Server
 
-from bservices import wsgi
+from bservices import wsgi, exception
+from bservices.examples.db import api
 
 LOG = logging.getLogger()
 CONF = cfg.CONF
@@ -21,12 +45,25 @@ cli_opts = [
 CONF.register_cli_opts(cli_opts)
 
 
-class HelloController(wsgi.Controller):
-    def hello(self, req):
-        return "Hello"
+class DataController(wsgi.Controller):
+    def get_data(self, req):
+        try:
+            id = int(req.GET["id"])
+        except (KeyError, TypeError, ValueError):
+            raise exception.BadRequest()
 
-    def data(self, req, body):
-        LOG.info(body)
+        ret = api.get_data(id)
+        if not ret:
+            raise exception.NotFound()
+        return ret
+
+    def set_data(self, req, body):
+        try:
+            data = body["data"]
+        except (KeyError, TypeError, ValueError):
+            raise exception.BadRequest()
+
+        return api.set_data(data)
 
 
 class API(Router):
@@ -34,14 +71,14 @@ class API(Router):
         mapper = routes.Mapper()
         mapper.redirect("", "/")
 
-        resource = wsgi.Resource(HelloController())
-        mapper.connect("/hello",
+        resource = wsgi.Resource(DataController())
+        mapper.connect("/get_data",
                        controller=resource,
-                       action="hello",
+                       action="get_data",
                        conditions={"method": ['GET']})
-        mapper.connect("/data",
+        mapper.connect("/set_data",
                        controller=resource,
-                       action="data",
+                       action="set_data",
                        conditions={"method": ["POST"]})
 
         super(API, self).__init__(mapper)
@@ -53,8 +90,8 @@ class WSGIServer(Server, service.ServiceBase):
 
 def main(project="example"):
     log.register_options(CONF)
-    CONF(project=project)
     # log.set_defaults(default_log_levels=None)
+    CONF(project=project)
 
     log.setup(CONF, project)
     eventlet.monkey_patch(all=True)

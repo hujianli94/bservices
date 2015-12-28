@@ -12,35 +12,42 @@ from . import models
 
 CONF = cfg.CONF
 CONF.register_opts(oslo_db_options.database_opts, 'database')
-CONF.register_opts(oslo_db_options.database_opts, 'api_database')
+oslo_db_options.set_defaults(CONF, connection="sqlite:///:memory:")
+DB_INIT = False
 
 LOG = logging.getLogger(__name__)
 
 
 def get_backend():
     """The backend is this module itself."""
-    # return APIInterface()
+    global DB_INIT
+    if not DB_INIT:
+        models.TestData.metadata.create_all(get_engine(CONF.database))
+        DB_INIT = True
     return sys.modules[__name__]
 
 
 ###########################################################
 # API Interface
-def get_user_info(username):
-    model = models.UserInfo
+def get_data(_id):
+    model = models.TestData
     session = get_session(CONF.database)
-    #api_session = get_session(CONF.api_database)
     query = sqlalchemyutils.model_query(model, session)
-    return query.filter_by(username=username)
+    obj = query.filter_by(id=_id).first()
+    if obj:
+        return {
+            "id": obj.id,
+            "data": obj.data
+        }
+    else:
+        return None
 
 
-class APIInterface(object):
-    def __init__(self):
-        self._engine = get_engine(CONF.database)
-        self._session = get_session(CONF.database)
-        self._api_engine = get_engine(CONF.api_database)
-        self._api_session = get_session(CONF.api_database)
-
-    def get_user_info(self, username):
-            model = models.UserInfo
-            query = sqlalchemyutils.model_query(model, self._session)
-            return query.filter_by(username=username)
+def set_data(data):
+    model = models.TestData
+    session = get_session(CONF.database)
+    obj = model(data=data)
+    obj.save(session)
+    return {
+        "id": obj.id,
+    }

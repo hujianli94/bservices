@@ -1,21 +1,13 @@
 # coding: utf-8
 from sqlalchemy import Column, String, Integer
 from sqlalchemy.ext.declarative import declarative_base
-from oslo.db.sqlalchemy import models
-
-
-class APIBASE(models.ModelBase, models.TimestampMixin):
-    pass
-
+from oslo_db.sqlalchemy import models
 
 BASE = declarative_base()
 
 
-class UserInfo(BASE):
-
-    __tablename__ = 'user_info'
+class TestData(models.ModelBase, BASE):
+    __tablename__ = 'test_data'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    username = Column(String(40), nullable=False)
-    password = Column(String(40), nullable=False)
-    email = Column(String(40), nullable=True)
+    data = Column(String(256), nullable=False)
