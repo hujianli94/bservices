@@ -1,2 +1,5 @@
 # bservices
-A server service library from the components of Openstack.
+A WSGI Server Service library based on oslo.service from the components of Openstack.
+
+# Usage
+See https://github.com/xgfone/bservices/blob/master/bservices/examples/example_server.py
