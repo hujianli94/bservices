@@ -10,7 +10,7 @@ oslo.log
 oslo.i18n
 oslo.utils
 oslo.config
-oslo.service
+oslo.service>=0.10.0
 oslo.concurrency
 oslo.serialization
 greenlet
