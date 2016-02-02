@@ -4,6 +4,7 @@ import os
 import socket
 import logging
 import functools
+import traceback
 
 import greenlet
 import eventlet
@@ -146,11 +147,12 @@ class TaskServer(ServerBase):
         try:
             self.task_fn(*self.args, **self.kwargs)
         except Exception:
-            pass
+            LOG.error(traceback.format_exc())
 
     def serve(self, pool):
         for i in range(self.task_num):
             pool.spawn_n(self._wrap_exc)
+        LOG.info("Process{0} start {1} tasks".format(os.getpid(), self.task_num))
 
 
 # Below the version of 0.10.0, oslo_service.wsgi.Server doesn't inherit
