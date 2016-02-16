@@ -54,8 +54,11 @@ Controller Action API:
             (1) a dict object
             (2) a bservices.wsgi.ResponseObject object
             (3) a exception based on webob.exc.HTTPException or
-                bservices.exception.ExceptionBase
-            (4) any object compatible with webob.dec.wsgify.__call__, for
+                bservices.exception.ExceptionBase, or
+                bservices.exception.ConvertedException.
+            (4) a object of webob.exc.HTTPException, or
+                bservices.exception.ConvertedException, or their subclass.
+            (5) any object compatible with webob.dec.wsgify.__call__, for
                 example, None, string(str, bytes, unicode), webob.Response, etc.
 
             Notice:
