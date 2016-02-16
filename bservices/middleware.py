@@ -153,3 +153,21 @@ class Debug(Middleware):
             sys.stdout.flush()
             yield part
         print()
+
+
+def get_app(app, middleware_cls, **kwargs):
+    """A convenient function to wrap the middlewares."""
+
+    def _get_cls(cls):
+        if isinstance(cls, six.string_types):
+            cls = __import__(cls)
+        return cls
+
+    for m in reversed(middleware_cls):
+        cls = _get_cls(m)
+        try:
+            app = cls(app, kwargs)
+        except TypeError:
+            app = cls(app)
+
+    return app

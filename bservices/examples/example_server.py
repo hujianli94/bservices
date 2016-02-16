@@ -64,6 +64,24 @@ Controller Action API:
             Notice:
                 The first two will be serialized.
                 see bservices.wsgi.ResponseObject.
+
+Middleware:
+    Method One:
+        >>> app = API()
+        >>> app = Middleware3(app)
+        >>> app = Middleware2(app)
+        >>> app = Middleware1(app)
+
+    Method Two:
+        >>> from bservices.middleware import get_app
+        >>> middlewares = ["PATH.TO.Middleware1", "PATH.TO.Middleware2", "PATH.TO.Middleware3"]
+        >>> app = API()
+        >>> app = get_app(app, middlewares)
+
+    def get_app(app, middlewares, **kwargs):
+        `middlewares` is a list or tuple object, whose elements are a str or the
+        Middleware class. Moreover, `kwargs` may pass the Middleware class as
+        the second argument, which is a dict.
 """
 import logging
 import multiprocessing
