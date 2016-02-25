@@ -155,6 +155,20 @@ class TaskServer(ServerBase):
         LOG.info("Process{0} start {1} tasks".format(os.getpid(), self.task_num))
 
 
+class PoolServer(ServerBase):
+    def __init__(self, handler, pool_size=None, *args, **kwargs):
+        self.handler = handler
+        self.args = args
+        self.kwargs = kwargs
+        super(PoolServer, self).__init__(pool_size)
+
+    def serve(self, pool):
+        try:
+            self.handler(pool, *self.args, **self.kwargs)
+        except Exception:
+            pass
+
+
 # Below the version of 0.10.0, oslo_service.wsgi.Server doesn't inherit
 # oslo_service.wsgi.ServiceBase. So, if using the version below 0.10.0,
 # you SHOULD inherit oslo_service.wsgi.ServiceBase.
