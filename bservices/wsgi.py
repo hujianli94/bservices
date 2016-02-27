@@ -450,9 +450,8 @@ class Resource(object):
     support_api_request_version = False
 
     def __init__(self, controller, action_peek=None, inherits=None,
-                 **deserializers):
-        """:param controller: object that implement methods created by routes
-                              lib
+                 methods_with_body=None, **deserializers):
+        """:param controller: object that implement methods created by routes lib
            :param action_peek: dictionary of routines for peeking into an
                                action request body to determine the
                                desired action
@@ -481,6 +480,9 @@ class Resource(object):
         self.wsgi_extensions = {}
         self.wsgi_action_extensions = {}
         self.inherits = inherits
+        self.methods_with_body = _METHODS_WITH_BODY
+        if methods_with_body:
+            self.methods_with_body = methods_with_body
 
     @classmethod
     def factory(cls, global_config, **local_config):
@@ -574,7 +576,7 @@ class Resource(object):
             return deserializer().deserialize(body)
 
     def _should_have_body(self, request):
-        return request.method in _METHODS_WITH_BODY
+        return request.method in self.methods_with_body
 
     @webob.dec.wsgify(RequestClass=Request)
     def __call__(self, request):
