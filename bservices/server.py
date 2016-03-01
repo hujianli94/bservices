@@ -156,7 +156,7 @@ class TaskServer(ServerBase):
 
 
 class PoolServer(ServerBase):
-    def __init__(self, handler, pool_size=None, *args, **kwargs):
+    def __init__(self, handler, pool_size=1024, *args, **kwargs):
         self.handler = handler
         self.args = args
         self.kwargs = kwargs
