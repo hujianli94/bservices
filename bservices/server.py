@@ -121,6 +121,9 @@ class TCPServer(ServerBase):
                     LOG.debug("[Process{0}] accepted {1}".format(pid, addr))
                     pool.spawn_n(self.handle, conn, addr)
                 except socket.error as e:
+                    LOG.error("[Process{0}] Socket has a error {1}: {2}".format(pid, addr, e))
+                except Exception as e:
+                    LOG.error(traceback.format_exc())
                     LOG.error("[Process{0}] can not handle the request from {1}: {2}".format(pid, addr, e))
                 except (KeyboardInterrupt, SystemExit):
                     LOG.info("[Process{0}] the server is exiting".format(pid))
@@ -136,9 +139,9 @@ SocketServer = TCPServer
 class TaskServer(ServerBase):
     EXTRA_TASH_NUM = 3
 
-    def __init__(self, task_fn, task_num=1, *args, **kwargs):
+    def __init__(self, task_fn, *args, **kwargs):
         self.task_fn = task_fn
-        self.task_num = task_num
+        self.task_num = kwargs.pop("task_num", 1)
         self.args = args
         self.kwargs = kwargs
         super(TaskServer, self).__init__(self.task_num + self.EXTRA_TASH_NUM)
@@ -156,7 +159,8 @@ class TaskServer(ServerBase):
 
 
 class PoolServer(ServerBase):
-    def __init__(self, handler, pool_size=1024, *args, **kwargs):
+    def __init__(self, handler, *args, **kwargs):
+        pool_size = kwargs.pop("pool_size", 10240)
         self.handler = handler
         self.args = args
         self.kwargs = kwargs
@@ -166,7 +170,7 @@ class PoolServer(ServerBase):
         try:
             self.handler(pool, *self.args, **self.kwargs)
         except Exception:
-            pass
+            LOG.error(traceback.format_exc())
 
 
 # Below the version of 0.10.0, oslo_service.wsgi.Server doesn't inherit
