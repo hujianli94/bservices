@@ -97,6 +97,11 @@ class Request(wsgi.Request):
         """
         return self.get_db_items(key).get(item_key)
 
+    @property
+    def accept_content_type(self):
+        accept = self.environ.get("wsgi.best_content_type", None)
+        return accept or self.best_match_content_type()
+
     def best_match_content_type(self):
         """Determine the requested response content-type."""
         if 'wsgi.best_content_type' not in self.environ:
