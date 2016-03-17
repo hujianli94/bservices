@@ -263,7 +263,8 @@ class ResponseObject(object):
     optional.
     """
 
-    def __init__(self, obj, code=None, headers=None, **serializers):
+    def __init__(self, obj, code=None, headers=None, content_type=None,
+                 **serializers):
         """Binds serializers with an object.
 
         Takes keyword arguments akin to the @serializer() decorator
@@ -278,6 +279,7 @@ class ResponseObject(object):
         self._headers = headers or {}
         self.serializer = None
         self.media_type = None
+        self.content_type = content_type
 
     def __getitem__(self, key):
         """Retrieves a header with the given name."""
@@ -317,6 +319,7 @@ class ResponseObject(object):
         serializer is available, raises InvalidContentType.
         """
         default_serializers = default_serializers or {}
+        content_type = self.content_type or content_type
 
         try:
             mtype = get_media_map().get(content_type, content_type)
@@ -350,6 +353,7 @@ class ResponseObject(object):
         Utility method for serializing the wrapped object.  Returns a
         webob.Response object.
         """
+        content_type = self.content_type or content_type
         if self.serializer:
             serializer = self.serializer
         else:
