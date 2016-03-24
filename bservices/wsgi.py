@@ -675,11 +675,14 @@ class Resource(object):
                 resp_obj._bind_method_serializers(serializers)
                 if hasattr(meth, 'wsgi_code'):
                     resp_obj._default_code = meth.wsgi_code
-                resp_obj.preserialize(accept, self.default_serializers)
+                try:
+                    resp_obj.preserialize(accept, self.default_serializers)
 
-            if resp_obj and not response:
-                response = resp_obj.serialize(request, accept,
-                                              self.default_serializers)
+                    if not response:
+                        response = resp_obj.serialize(request, accept,
+                                                      self.default_serializers)
+                except exception.InvalidContentType as err:
+                    return webob.exc.HTTPBadRequest(explanation=err)
 
         if hasattr(response, 'headers'):
             for hdr, val in response.headers.items():
