@@ -1,16 +1,12 @@
 Metadata-Version: 1.1
 Name: bservices
-Version: 0.6.1
-Summary: A server service library Based on the components of Openstack
+Version: 0.6.2
+Summary: A server service library from the components of Openstack
 Home-page: https://github.com/xgfone/bservices
 Author: xgfone
 Author-email: xgfone@126.com
-License: UNKNOWN
-Description: ============================================================================
-         bservices -- A server service library Based on the components of Openstack
-        ============================================================================
-
-        bservices
+License: Apache License 2.0
+Description: bservices
         =========
 
         A server service library Based on the components of Openstack.
