@@ -1,16 +1,13 @@
 # coding: utf-8
 from __future__ import absolute_import, print_function
 
-import functools
 import six
 import webob
 
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
-from oslo_utils import strutils
 from oslo_service import wsgi
 
-from . import api_version
 from . import exception
 
 _ = (lambda v: v)
@@ -101,6 +98,10 @@ class Request(wsgi.Request):
     def accept_content_type(self):
         accept = self.environ.get("wsgi.best_content_type", None)
         return accept or self.best_match_content_type()
+
+    @accept_content_type.setter
+    def accept_content_type(self, accept):
+        self.environ['wsgi.best_content_type'] = accept
 
     def best_match_content_type(self):
         """Determine the requested response content-type."""
@@ -207,14 +208,12 @@ class DictSerializer(ActionDispatcher):
         return self.dispatch(data, action=action)
 
     def default(self, data):
-        return ""
+        return jsonutils.dumps(data)
 
 
 class JSONDictSerializer(DictSerializer):
     """Default JSON request body serialization."""
-
-    def default(self, data):
-        return jsonutils.dumps(data)
+    pass
 
 
 def serializers(**serializers):
@@ -346,11 +345,6 @@ class ResponseObject(object):
                                                 default_serializers)
         self.media_type = mtype
         self.serializer = serializer()
-
-    def attach(self, **kwargs):
-        """Attach slave templates to serializers."""
-        if self.media_type in kwargs:
-            self.serializer.attach(kwargs[self.media_type])
 
     def serialize(self, request, content_type, default_serializers=None):
         """Serializes the wrapped object.
@@ -489,9 +483,7 @@ class Resource(object):
         self.wsgi_extensions = {}
         self.wsgi_action_extensions = {}
         self.inherits = inherits
-        self.methods_with_body = _METHODS_WITH_BODY
-        if methods_with_body:
-            self.methods_with_body = methods_with_body
+        self.methods_with_body = methods_with_body or _METHODS_WITH_BODY
 
     @classmethod
     def factory(cls, global_config, **local_config):
@@ -547,15 +539,8 @@ class Resource(object):
         except (KeyError, IndexError, AttributeError):
             return {}
 
-        try:
-            del args['controller']
-        except KeyError:
-            pass
-
-        try:
-            del args['format']
-        except KeyError:
-            pass
+        args.pop('controller', None)
+        args.pop('format', None)
 
         return args
 
@@ -615,20 +600,11 @@ class Resource(object):
         except (AttributeError, TypeError):
             return webob.exc.HTTPNotFound()
         except KeyError as ex:
-            msg = _("There is no such action: %s") % ex.args[0]
+            msg = _("There is no such action: {0}").format(ex.args[0])
             return webob.exc.HTTPBadRequest(explanation=msg)
         except exception.MalformedRequestBody:
             msg = _("Malformed request body")
             return webob.exc.HTTPBadRequest(explanation=msg)
-
-        if body:
-            msg = _("Action: '%(action)s', calling method: %(meth)s, body: "
-                    "%(body)s") % {'action': action,
-                                   'body': six.text_type(body, 'utf-8'),
-                                   'meth': str(meth)}
-            LOG.debug(strutils.mask_password(msg))
-        else:
-            LOG.debug("Calling method '%(meth)s'", {'meth': str(meth)})
 
         # Now, deserialize the request body...
         try:
@@ -675,6 +651,7 @@ class Resource(object):
                 resp_obj._bind_method_serializers(serializers)
                 if hasattr(meth, 'wsgi_code'):
                     resp_obj._default_code = meth.wsgi_code
+
                 try:
                     resp_obj.preserialize(accept, self.default_serializers)
 
@@ -714,7 +691,7 @@ class Resource(object):
                 meth = getattr(self.controller, action)
         except AttributeError:
             if (not self.wsgi_actions or
-                    action not in _ROUTES_METHODS + ['action']):
+                action not in _ROUTES_METHODS + ['action']):
                 # Propagate the error
                 raise
         else:
@@ -797,21 +774,9 @@ class ControllerMetaclass(type):
         # Find all actions
         actions = {}
         extensions = []
-        versioned_methods = None
         # start with wsgi actions from base classes
         for base in bases:
             actions.update(getattr(base, 'wsgi_actions', {}))
-
-            if base.__name__ == "Controller":
-                # NOTE(cyeoh): This resets the VER_METHOD_ATTR attribute
-                # between API controller class creations. This allows us
-                # to use a class decorator on the API methods that doesn't
-                # require naming explicitly what method is being versioned as
-                # it can be implicit based on the method decorated. It is a bit
-                # ugly.
-                if VER_METHOD_ATTR in base.__dict__:
-                    versioned_methods = getattr(base, VER_METHOD_ATTR)
-                    delattr(base, VER_METHOD_ATTR)
 
         for key, value in cls_dict.items():
             if not callable(value):
@@ -824,11 +789,8 @@ class ControllerMetaclass(type):
         # Add the actions and extensions to the class dict
         cls_dict['wsgi_actions'] = actions
         cls_dict['wsgi_extensions'] = extensions
-        if versioned_methods:
-            cls_dict[VER_METHOD_ATTR] = versioned_methods
 
-        return super(ControllerMetaclass, mcs).__new__(mcs, name, bases,
-                                                       cls_dict)
+        return super(ControllerMetaclass, mcs).__new__(mcs, name, bases, cls_dict)
 
 
 @six.add_metaclass(ControllerMetaclass)
@@ -845,102 +807,3 @@ class Controller(object):
             self._view_builder = self._view_builder_class()
         else:
             self._view_builder = None
-
-    def __getattribute__(self, key):
-
-        def version_select(*args, **kwargs):
-            """Look for the method which matches the name supplied and version
-            constraints and calls it with the supplied arguments.
-
-            @return: Returns the result of the method called
-            @raises: VersionNotFoundForAPIMethod if there is no method which
-                 matches the name and version constraints
-            """
-            # The first arg to all versioned methods is always the request
-            # object. The version for the request is attached to the
-            # request object
-            if len(args) == 0:
-                ver = kwargs['req'].api_version_request
-            else:
-                ver = args[0].api_version_request
-
-            func_list = self.versioned_methods[key]
-            for func in func_list:
-                if ver.matches(func.start_version, func.end_version):
-                    # Update the version_select wrapper function so
-                    # other decorator attributes like wsgi.response
-                    # are still respected.
-                    functools.update_wrapper(version_select, func.func)
-                    return func.func(self, *args, **kwargs)
-
-            # No version match
-            raise exception.VersionNotFoundForAPIMethod(version=ver)
-
-        try:
-            version_meth_dict = object.__getattribute__(self, VER_METHOD_ATTR)
-        except AttributeError:
-            # No versioning on this class
-            return object.__getattribute__(self, key)
-
-        if version_meth_dict and key in version_meth_dict:
-            return version_select
-
-        return object.__getattribute__(self, key)
-
-    # NOTE: This decorator MUST appear first (the outermost decorator) on an
-    # API method for it to work correctly
-    @classmethod
-    def api_version(cls, min_ver, max_ver=None):
-        """Decorator for versioning api methods.
-
-        Add the decorator to any method which takes a request object
-        as the first parameter and belongs to a class which inherits from
-        wsgi.Controller.
-
-        @min_ver: string representing minimum version
-        @max_ver: optional string representing maximum version
-        """
-        def decorator(f):
-            obj_min_ver = api_version.APIVersionRequest(min_ver)
-            if max_ver:
-                obj_max_ver = api_version.APIVersionRequest(max_ver)
-            else:
-                obj_max_ver = api_version.APIVersionRequest()
-
-            # Add to list of versioned methods registered
-            func_name = f.__name__
-            new_func = api_version.VersionedMethod(func_name, obj_min_ver, obj_max_ver, f)
-
-            func_dict = getattr(cls, VER_METHOD_ATTR, {})
-            if not func_dict:
-                setattr(cls, VER_METHOD_ATTR, func_dict)
-
-            func_list = func_dict.get(func_name, [])
-            if not func_list:
-                func_dict[func_name] = func_list
-            func_list.append(new_func)
-            # Ensure the list is sorted by minimum version (reversed)
-            # so later when we work through the list in order we find
-            # the method which has the latest version which supports
-            # the version requested.
-            # TODO(cyeoh): Add check to ensure that there are no overlapping
-            # ranges of valid versions as that is amibiguous
-            func_list.sort(key=lambda f: f.start_version, reverse=True)
-
-            return f
-
-        return decorator
-
-    @staticmethod
-    def is_valid_body(body, entity_name):
-        if not (body and entity_name in body):
-            return False
-
-        def is_dict(d):
-            try:
-                d.get(None)
-                return True
-            except AttributeError:
-                return False
-
-        return is_dict(body[entity_name])
