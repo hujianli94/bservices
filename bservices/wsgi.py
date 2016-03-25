@@ -13,11 +13,16 @@ from . import exception
 _ = (lambda v: v)
 LOG = logging.getLogger(__name__)
 
-_SUPPORTED_CONTENT_TYPES = (
-    'text/plain',
+_SUPPORTED_REQUEST_CONTENT_TYPES = [
+    'test/plain',
     'application/json',
     'application/xml',
-)
+]
+
+_SUPPORTED_RESPONSE_CONTENT_TYPES = [
+    'application/json',
+    'application/xml',
+]
 
 _MEDIA_TYPE_MAP = {
     'text/plain': 'text',
@@ -51,12 +56,28 @@ def utf8(value):
     return value
 
 
-def get_supported_content_types():
-    return _SUPPORTED_CONTENT_TYPES
+def get_supported_request_content_types():
+    return _SUPPORTED_REQUEST_CONTENT_TYPES
+
+
+def add_request_content_types(types):
+    _SUPPORTED_REQUEST_CONTENT_TYPES.append(types)
+
+
+def get_supported_response_content_types():
+    return _SUPPORTED_RESPONSE_CONTENT_TYPES
+
+
+def add_response_content_types(types):
+    _SUPPORTED_RESPONSE_CONTENT_TYPES.append(types)
 
 
 def get_media_map():
     return dict(_MEDIA_TYPE_MAP.items())
+
+
+def add_media_map(maps):
+    _MEDIA_TYPE_MAP.update(maps)
 
 
 class Request(wsgi.Request):
@@ -113,11 +134,11 @@ class Request(wsgi.Request):
             parts = self.path.rsplit('.', 1)
             if len(parts) > 1:
                 possible_type = 'application/' + parts[1]
-                if possible_type in get_supported_content_types():
+                if possible_type in get_supported_response_content_types():
                     content_type = possible_type
 
             if not content_type:
-                content_type = self.accept.best_match(get_supported_content_types())
+                content_type = self.accept.best_match(get_supported_response_content_types())
 
             self.environ['wsgi.best_content_type'] = (content_type or 'application/json')
 
@@ -141,7 +162,7 @@ class Request(wsgi.Request):
         if not content_type:
             return None
 
-        if content_type not in get_supported_content_types():
+        if content_type not in get_supported_request_content_types():
             raise exception.InvalidContentType(content_type=content_type)
 
         return content_type
@@ -637,8 +658,6 @@ class Resource(object):
             resp_obj = None
             if type(action_result) is dict:
                 resp_obj = ResponseObject(action_result)
-                if accept == "text/plain":
-                    accept = "application/json"
             elif isinstance(action_result, ResponseObject):
                 resp_obj = action_result
             else:
