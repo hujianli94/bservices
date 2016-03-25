@@ -6,7 +6,8 @@ WSGI Server
 
 HTTP Client:
     Add:
-        curl http://127.0.0.1:10000/set_data -d '{"data": "test_data"}' -H "Content-Type: application/json"
+        curl http://127.0.0.1:10000/set_data -d '{"data": "test_data"}' \
+             -H "Content-Type: application/json"
         >>> {"id": 1}
     Get:
         curl http://127.0.0.1:10000/get_data?id=1
@@ -74,14 +75,45 @@ Middleware:
 
     Method Two:
         >>> from bservices.middleware import get_app
-        >>> middlewares = ["PATH.TO.Middleware1", "PATH.TO.Middleware2", "PATH.TO.Middleware3"]
+        >>> middlewares = ["PATH.TO.Middleware1", "PATH.TO.Middleware2",
+                           "PATH.TO.Middleware3"]
         >>> app = API()
         >>> app = get_app(app, middlewares)
 
     def get_app(app, middlewares, **kwargs):
-        `middlewares` is a list or tuple object, whose elements are a str or the
-        Middleware class. Moreover, `kwargs` may pass the Middleware class as
-        the second argument, which is a dict.
+        `middlewares` is a list or tuple object, whose elements are a str or
+        the Middleware class. Moreover, `kwargs` may pass the Middleware class
+        as the second argument, which is a dict.
+
+Decorators:
+    bservices.wsgi carries some convenient decorators to implement some
+    functions rapidly.
+
+    These decorators are used on the action method of the controller.
+
+    @serializers(**serializers)
+        Assign the some serializers for the action method.
+
+    @deserializers(**deserializers)
+        Assign the some deserializers for the action method.
+
+    @response(code)
+        Assign the default status code for the action method.
+
+    @action(name)
+        Assign the action name for the action method.
+
+    Notice:
+        bservices.wsgi.Resource supplies two pairs of serializers and
+        deserializers, that's, JSON and TEXT. The serializers of JSON and TEXT
+        are JSONDeserializer and TextDeserializer, and the deserializers of JSON
+        and TEXT are JSONDictSerializer and TextSerializer. Certianly, you can
+        assign yourself serializers and deserializers to replace them.
+
+        The serializers and the deserializers only serialize the body of the
+        request, or deserialize the body of the response.
+
+    For their usage examples, see below.
 """
 import logging
 import multiprocessing
@@ -107,6 +139,10 @@ CONF.register_cli_opts(cli_opts)
 
 
 class DataController(wsgi.Controller):
+    @wsgi.serializers(json=wsgi.JSONDictSerializer)
+    @wsgi.deserializers(json=wsgi.JSONDeserializer)
+    @wsgi.response(200)
+    @wsgi.action("index")
     def get_data(self, req):
         try:
             id = int(req.GET["id"])
