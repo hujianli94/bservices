@@ -123,9 +123,10 @@ import eventlet
 from oslo_config import cfg
 from oslo_log import log
 from oslo_service import service
-from oslo_service.wsgi import Router, Server
+from oslo_service.wsgi import Router
 
 from bservices import wsgi, exception
+from bservices.contrib.server import WSGIServer
 from bservices.examples.db import api
 
 LOG = logging.getLogger()
@@ -181,10 +182,6 @@ class API(Router):
         super(API, self).__init__(mapper)
 
 
-class WSGIServer(Server, service.ServiceBase):
-    pass
-
-
 def main(project="example"):
     log.register_options(CONF)
     # log.set_defaults(default_log_levels=None)
@@ -193,8 +190,8 @@ def main(project="example"):
     log.setup(CONF, project)
     eventlet.monkey_patch(all=True)
 
-    server = WSGIServer(CONF, project, API(), host=CONF.listen_ip, port=CONF.listen_port,
-                        use_ssl=False, max_url_len=1024)
+    server = WSGIServer(CONF, project, API(), host=CONF.listen_ip,
+                        port=CONF.listen_port, use_ssl=False, max_url_len=1024)
     launcher = service.launch(CONF, server, workers=multiprocessing.cpu_count())
     launcher.wait()
 
