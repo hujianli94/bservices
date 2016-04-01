@@ -1,7 +1,11 @@
 #!/usr/bin/env python
+"""
+The handler of TCPServer only need two arguments.
+The first is a socket object.
+The second is the address of the client, like ("127.0.0.1", 39305).
+"""
 from __future__ import absolute_import, print_function
 
-import time
 import logging
 
 import eventlet
