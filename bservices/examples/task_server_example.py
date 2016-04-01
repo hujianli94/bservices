@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+"""
+TaskServer itself need two arguments. The first is the handler, which is a
+callable object. The second is 'task_num', which stands for the number of the
+task to start. The other arguments will be passed to the handler.
+
+For the handler, the arguments are all from the TaskServer.
+"""
 from __future__ import absolute_import, print_function
 
 import time
