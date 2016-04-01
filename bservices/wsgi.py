@@ -13,8 +13,12 @@ from . import exception
 _ = (lambda v: v)
 LOG = logging.getLogger(__name__)
 
+_NOT_SERIALIZED_TYPES = [
+    'text/plain'
+]
+
 _SUPPORTED_REQUEST_CONTENT_TYPES = [
-    'test/plain',
+    'text/plain',
     'application/json',
     'application/xml',
 ]
@@ -656,7 +660,7 @@ class Resource(object):
         if not response:
             # No exceptions; convert action_result into a ResponseObject
             resp_obj = None
-            if type(action_result) is dict:
+            if accept not in _NOT_SERIALIZED_TYPES:
                 resp_obj = ResponseObject(action_result)
             elif isinstance(action_result, ResponseObject):
                 resp_obj = action_result
