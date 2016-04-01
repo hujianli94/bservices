@@ -1,4 +1,13 @@
 #!/usr/bin/env python
+"""
+PoolServer itself need two arguments. The first is the handler, which is a
+callable object. The second is 'pool_size', which stands for the size of the
+GreenThread Pool, that's eventlet.GreenPool, see below. The other arguments
+will be passed to the handler.
+
+For the handler, the first argument is a instance of eventlet.GreenPool, and
+the other arguments are from the arguments of PoolServer.
+"""
 from __future__ import absolute_import, print_function
 
 import time
