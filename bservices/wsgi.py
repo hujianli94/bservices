@@ -660,10 +660,12 @@ class Resource(object):
         if not response:
             # No exceptions; convert action_result into a ResponseObject
             resp_obj = None
-            if accept not in _NOT_SERIALIZED_TYPES:
-                resp_obj = ResponseObject(action_result)
+            if isinstance(action_result, webob.Response):
+                response = action_result
             elif isinstance(action_result, ResponseObject):
                 resp_obj = action_result
+            if accept not in _NOT_SERIALIZED_TYPES:
+                resp_obj = ResponseObject(action_result)
             else:
                 response = action_result
 
