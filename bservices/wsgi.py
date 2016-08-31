@@ -664,8 +664,12 @@ class Resource(object):
                 response = action_result
             elif isinstance(action_result, ResponseObject):
                 resp_obj = action_result
+
             if accept not in _NOT_SERIALIZED_TYPES:
-                resp_obj = ResponseObject(action_result)
+                if isinstance(action_result, ResponseObject):
+                    resp_obj = action_result
+                else:
+                    resp_obj = ResponseObject(action_result)
             else:
                 response = action_result
 
