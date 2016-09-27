@@ -1,6 +1,6 @@
 Metadata-Version: 1.1
 Name: bservices
-Version: 0.7.4
+Version: 0.7.5
 Summary: A server service library from the components of Openstack
 Home-page: https://github.com/xgfone/bservices
 Author: xgfone
