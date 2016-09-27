@@ -1,7 +1,7 @@
 # coding: utf-8
 
 """Utility methods for working with WSGI servers."""
-from __future__ import print_function
+from __future__ import absolute_import, print_function, unicode_literals, division
 
 import sys
 import six

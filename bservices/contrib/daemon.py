@@ -1,5 +1,6 @@
 # encoding: utf-8
 """Turn the program into a daemon process."""
+from __future__ import absolute_import, print_function, unicode_literals, division
 
 
 def daemon(umask=None, workdir=None, maxfd=None, keep_fds_open=False, stdio=False):

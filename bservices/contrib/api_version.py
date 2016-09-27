@@ -15,10 +15,11 @@
 # the versioning system. It must be made clear in the documentation as
 # to what is a backwards compatible change and what is a backwards
 # incompatible one.
+from __future__ import absolute_import, print_function, unicode_literals, division
 
 import re
 
-from . import exception
+from bservices import exception
 _ = (lambda v: v)
 
 
