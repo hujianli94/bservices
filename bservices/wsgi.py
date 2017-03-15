@@ -13,7 +13,7 @@ from bservices import exception
 _ = (lambda v: v)
 LOG = logging.getLogger(__name__)
 
-APP = Application = Router = wsgi.Router
+Router = wsgi.Router
 
 _NOT_SERIALIZED_TYPES = [
     'text/plain'
