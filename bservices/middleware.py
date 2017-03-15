@@ -5,10 +5,10 @@ from __future__ import absolute_import, print_function, unicode_literals, divisi
 
 import sys
 import six
+import logging
 import webob.dec
 import webob.exc
 from oslo_config import cfg
-from oslo_log import log as logging
 
 __all__ = ["Application", "Middleware", "Debug"]
 

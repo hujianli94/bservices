@@ -3,8 +3,8 @@ from __future__ import absolute_import, print_function, unicode_literals, divisi
 
 import six
 import webob
+import logging
 
-from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from oslo_service import wsgi
 

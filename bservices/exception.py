@@ -4,8 +4,8 @@
 """
 from __future__ import absolute_import, print_function, unicode_literals, division
 
-from oslo_log import log as logging
 import six
+import logging
 import webob.exc
 
 _ = (lambda v: v)
