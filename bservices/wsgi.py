@@ -26,6 +26,7 @@ _SUPPORTED_REQUEST_CONTENT_TYPES = [
 ]
 
 _SUPPORTED_RESPONSE_CONTENT_TYPES = [
+    'text/plain',
     'application/json',
     'application/xml',
 ]
@@ -67,6 +68,7 @@ def get_supported_request_content_types():
 
 
 def add_request_content_types(types):
+    """Deprecated! Please use register_content_type or register_content_types."""
     _SUPPORTED_REQUEST_CONTENT_TYPES.append(types)
 
 
@@ -75,6 +77,7 @@ def get_supported_response_content_types():
 
 
 def add_response_content_types(types):
+    """Deprecated! Please use register_content_type or register_content_types."""
     _SUPPORTED_RESPONSE_CONTENT_TYPES.append(types)
 
 
@@ -83,7 +86,50 @@ def get_media_map():
 
 
 def add_media_map(maps):
+    """Deprecated! Please use register_content_type or register_content_types."""
     _MEDIA_TYPE_MAP.update(maps)
+
+
+def register_content_type(name, _type, resp=True):
+    """Register the content type into the supported request, and the pair of
+    type and name into the media map.
+
+    Register the content type into the supported response if resp is True.
+
+    For example,
+    >>> register_content_type("html", "text/html")
+    """
+    if _type not in _SUPPORTED_REQUEST_CONTENT_TYPES:
+        _SUPPORTED_REQUEST_CONTENT_TYPES.append(_type)
+
+    if _type not in _MEDIA_TYPE_MAP:
+        _MEDIA_TYPE_MAP[_type] = name
+
+    if resp and _type not in _SUPPORTED_RESPONSE_CONTENT_TYPES:
+        _SUPPORTED_RESPONSE_CONTENT_TYPES.append(_type)
+
+
+def register_content_types(types, resp=True):
+    """Register the content type into the supported request, and the pair of
+    type and name into the media map.
+
+    Register the content type into the supported response if resp is True.
+
+    Notice: the argument types must be a list or tuple, and the items of types
+    are a list or tuple which has two elements of name and type, or a dict which
+    has two keys of "name" and "type".
+
+    For example,
+    >>> register_content_types([("html", "text/html"), {"name": "xml", "type": "application/xml"}])
+    """
+    for ct in types:
+        if isinstance(ct, (list, tuple)):
+            name, _type = ct[0], ct[1]
+        elif isinstance(_type, dict):
+            name, _type = ct["name"], ct["type"]
+        else:
+            raise ValueError
+        register_content_type(name, _type, resp=resp)
 
 
 class Request(wsgi.Request):
