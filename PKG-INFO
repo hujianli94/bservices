@@ -1,7 +1,7 @@
 Metadata-Version: 1.1
 Name: bservices
 Version: 0.9.0
-Summary: A server service library from the components of Openstack
+Summary: A server service library Based on **oslo.service**.
 Home-page: https://github.com/xgfone/bservices
 Author: xgfone
 Author-email: xgfone@126.com
@@ -9,7 +9,7 @@ License: Apache License 2.0
 Description: bservices
         =========
         
-        A server service library Based on the components of Openstack.
+        A server service library Based on **oslo.service**.
         
         * **WSGI Server:** Handle the WSGI request.
             See https://github.com/xgfone/bservices/blob/master/bservices/examples/wsgi_server_example.py

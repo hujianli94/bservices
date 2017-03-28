@@ -2,7 +2,7 @@
 bservices
 =========
 
-A server service library Based on the components of Openstack.
+A server service library Based on **oslo.service**.
 
 * **WSGI Server:** Handle the WSGI request.
     See https://github.com/xgfone/bservices/blob/master/bservices/examples/wsgi_server_example.py
