@@ -15,10 +15,6 @@ LOG = logging.getLogger(__name__)
 
 Router = wsgi.Router
 
-_NOT_SERIALIZED_TYPES = [
-    'text/plain'
-]
-
 _SUPPORTED_REQUEST_CONTENT_TYPES = [
     'text/plain',
     'application/json',
@@ -713,13 +709,10 @@ class Resource(object):
             elif isinstance(action_result, ResponseObject):
                 resp_obj = action_result
 
-            if accept not in _NOT_SERIALIZED_TYPES:
-                if isinstance(action_result, ResponseObject):
-                    resp_obj = action_result
-                else:
-                    resp_obj = ResponseObject(action_result)
+            if isinstance(action_result, ResponseObject):
+                resp_obj = action_result
             else:
-                response = action_result
+                resp_obj = ResponseObject(action_result)
 
             # Run post-processing extensions
             if resp_obj:

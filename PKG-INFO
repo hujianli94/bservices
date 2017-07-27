@@ -1,6 +1,6 @@
 Metadata-Version: 1.1
 Name: bservices
-Version: 0.9.0
+Version: 0.9.1
 Summary: A server service library Based on **oslo.service**.
 Home-page: https://github.com/xgfone/bservices
 Author: xgfone
