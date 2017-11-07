@@ -17,7 +17,6 @@ def _create_facade(conf_group):
         autocommit=True,
         expire_on_commit=False,
         mysql_sql_mode=conf_group.mysql_sql_mode,
-        idle_timeout=conf_group.idle_timeout,
         connection_debug=conf_group.connection_debug,
         max_pool_size=conf_group.max_pool_size,
         max_overflow=conf_group.max_overflow,
