@@ -13,6 +13,16 @@ HTTP Client:
         curl http://127.0.0.1:10000/get_data?id=1
         >>> {"data": "test_data", "id": 1}
 
+    Update:
+        curl -X PUT http://127.0.0.1:10000/update_data \
+        -d '{"id": 1, "data": "updated_data"}' \
+        -H "Content-Type: application/json"
+        >>> {"id": 1, "data": "updated_data"}
+
+    Delete:
+        curl -X DELETE "http://127.0.0.1:10000/delete_data?id=1"
+        >>> {"id": 1}
+
 Restriction of `bservices.wsgi.Resource`:
     (1) Only support three kinds of Content-Type:
         A. text/plain
@@ -163,6 +173,34 @@ class DataController(wsgi.Controller):
 
         return api.set_data(data)
 
+    @wsgi.serializers(json=wsgi.JSONDictSerializer)
+    @wsgi.deserializers(json=wsgi.JSONDeserializer)
+    @wsgi.response(200)
+    def update_data(self, req, body):
+        """更新数据(PUT /update_data)"""
+        try:
+            data_id = int(body["id"])
+            new_data = body["data"]
+        except (KeyError, TypeError, ValueError):
+            raise exception.BadRequest()
+
+        ret = api.update_data(data_id, new_data)
+        if not ret:
+            raise exception.NotFound()
+        return ret
+
+    @wsgi.response(204)  # 204表示成功无返回体
+    def delete_data(self, req):
+        """删除数据(DELETE /delete_data)"""
+        try:
+            data_id = int(req.GET["id"])
+        except (KeyError, TypeError, ValueError):
+            raise exception.BadRequest()
+
+        if not api.delete_data(data_id):
+            raise exception.NotFound()
+        return None
+
 
 class API(Router):
     def __init__(self):
@@ -178,23 +216,30 @@ class API(Router):
                        controller=resource,
                        action="set_data",
                        conditions={"method": ["POST"]})
+        mapper.connect("/update_data",
+                       controller=resource,
+                       action="update_data",
+                       conditions={"method": ["PUT"]})
+        mapper.connect("/delete_data",
+                       controller=resource,
+                       action="delete_data",
+                       conditions={"method": ["DELETE"]})
 
         super(API, self).__init__(mapper)
 
-
-def main(project="example"):
-    log.register_options(CONF)
-    # log.set_defaults(default_log_levels=None)
-    CONF(project=project)
-
-    log.setup(CONF, project)
-    eventlet.monkey_patch(all=True)
-
-    server = WSGIServer(CONF, project, API(), host=CONF.listen_ip,
-                        port=CONF.listen_port, use_ssl=False, max_url_len=1024)
-    launcher = service.launch(CONF, server, workers=multiprocessing.cpu_count())
-    launcher.wait()
-
-
-if __name__ == '__main__':
-    main()
+# def main(project="example"):
+#     log.register_options(CONF)
+#     # log.set_defaults(default_log_levels=None)
+#     CONF(project=project)
+#
+#     log.setup(CONF, project)
+#     eventlet.monkey_patch(all=True)
+#
+#     server = WSGIServer(CONF, project, API(), host=CONF.listen_ip,
+#                         port=CONF.listen_port, use_ssl=False, max_url_len=1024)
+#     launcher = service.launch(CONF, server, workers=multiprocessing.cpu_count())
+#     launcher.wait()
+#
+#
+# if __name__ == '__main__':
+#     main()

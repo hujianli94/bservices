@@ -30,6 +30,7 @@ def get_backend():
 ###########################################################
 # API Interface
 def get_data(_id):
+    """获取指定ID的数据"""
     model = models.TestData
     session = get_session(CONF.database)
     query = sqlalchemyutils.model_query(model, session)
@@ -44,6 +45,7 @@ def get_data(_id):
 
 
 def set_data(data):
+    """新增数据"""
     model = models.TestData
     session = get_session(CONF.database)
     obj = model(data=data)
@@ -51,3 +53,30 @@ def set_data(data):
     return {
         "id": obj.id,
     }
+
+
+def update_data(_id, new_data):
+    """更新指定ID的数据"""
+    model = models.TestData
+    session = get_session(CONF.database)
+    obj = session.query(model).filter_by(id=_id).first()
+    if not obj:
+        return False
+    obj.data = new_data
+    session.flush()
+    return {
+        "id": obj.id,
+        "data": obj.data,
+        "update_time": obj.update_time.isoformat()
+    }
+
+def delete_data(_id):
+    """删除指定ID的数据"""
+    model = models.TestData
+    session = get_session(CONF.database)
+    obj = session.query(model).filter_by(id=_id).first()
+    if not obj:
+        return False
+    session.delete(obj)
+    session.flush()
+    return True
